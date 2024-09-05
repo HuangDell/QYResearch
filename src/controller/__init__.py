@@ -1,3 +1,4 @@
-from selenium import webdriver
+from src.util.report_item import ReportItem
 
-driver = webdriver.Chrome()
+
+report_data=ReportItem()
