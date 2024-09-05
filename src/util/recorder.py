@@ -4,7 +4,6 @@ from report_item import ReportItem
 
 
 
-
 class ReportExcelWriter:
     def __init__(self, filename: str):
         self.filename = filename
@@ -36,7 +35,7 @@ class ReportExcelWriter:
 
     def save(self):
         if self.df is None:
-            raise ValueError("No data to write. Call write_items() first.")
+            raise ValueError("No data to write.")
 
         # 创建一个 ExcelWriter 对象
         with pd.ExcelWriter(self.filename, engine='openpyxl') as writer:
@@ -67,7 +66,6 @@ if __name__ == "__main__":
     report_items = [
         ReportItem(),
         ReportItem(),
-        # ... 更多 ReportItem 实例
     ]
 
     # 填充一些示例数据
