@@ -4,7 +4,7 @@ from urllib.parse import quote
 class Config:
     def __init__(self):
         self.config = configparser.ConfigParser()
-        self.config.read('config.ini')
+        self.config.read('config.ini',encoding='utf-8')
         self.domain = self.config['Crawler']['SearchUrl']
         self.price = self.config['Crawler']['Price']
 
@@ -22,5 +22,8 @@ class Config:
 
     def get_filename(self):
         return self.config['Data']['FileName']
+
+    def get_record_file(self):
+        return self.config['Data']['RecordName']
 
 config = Config()

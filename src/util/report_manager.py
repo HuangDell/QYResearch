@@ -1,7 +1,8 @@
 import pandas as pd
 import os
 from typing import List
-from report_item import ReportItem
+from src.util.report_item import ReportItem
+from src.util.config import config
 
 class ReportExcelWriter:
     def __init__(self, filename: str):
@@ -68,6 +69,14 @@ class ReportExcelWriter:
                                  index=False,
                                  header=False,
                                  startrow=writer.sheets['Report Items'].max_row)
+
+
+class RecordLocation:
+    def __init__(self):
+        self.filename = config.get_record_file()
+
+
+        pass
 
 
 
