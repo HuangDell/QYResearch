@@ -20,4 +20,7 @@ class Config:
             return True
         return self.price==price
 
+    def get_filename(self):
+        return self.config['Data']['FileName']
+
 config = Config()

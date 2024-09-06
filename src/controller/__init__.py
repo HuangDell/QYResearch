@@ -1,4 +1,5 @@
-from src.util.report_item import ReportItem
+from src.util.recorder import ReportExcelWriter
+from src.util.config import config
 
+report_writer = ReportExcelWriter(config.get_filename())
 
-report_data=ReportItem()
