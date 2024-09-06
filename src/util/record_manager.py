@@ -1,7 +1,9 @@
 from src.util.record_item import RecordItem
 import os
 import json
-
+"""
+将RecordItem写入文件中，目标格式是Json
+"""
 class RecordItemManager:
     def __init__(self,filename):
         self.filename = filename
@@ -13,7 +15,7 @@ class RecordItemManager:
 
     def load(self) -> RecordItem:
         """Load the RecordItem from the file."""
-        if not os.path.exists(self.filename):
+        if not self.exists():
             return RecordItem()  # Return default RecordItem if file doesn't exist
         with open(self.filename, 'r') as file:
             data = json.load(file)

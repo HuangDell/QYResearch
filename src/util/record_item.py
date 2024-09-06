@@ -1,4 +1,7 @@
 
+"""
+用于表示上次爬取的页面和索引的数据结构，
+"""
 class RecordItem:
     def __init__(self, page=1, index=0):
         self._page = page

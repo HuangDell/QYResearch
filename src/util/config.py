@@ -4,7 +4,7 @@ from urllib.parse import quote
 class Config:
     def __init__(self):
         self.config = configparser.ConfigParser()
-        self.config.read('config.ini',encoding='utf-8')
+        self.config.read('../../config.ini',encoding='utf-8')
         self.domain = self.config['Crawler']['SearchUrl']
         self.price = self.config['Crawler']['Price']
 
