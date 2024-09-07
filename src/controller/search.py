@@ -4,6 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from src.controller.page_controller import PageController
+from src.controller.content_parser import ContentParser
 
 from src.util.report_item import ReportItem
 
@@ -14,6 +15,7 @@ class TargetSearch:
         self.url = config.get_search_page()
         self.controller = PageController(self.driver)
         self.record = record_manager.load()
+        self.parser = ContentParser()
         self.reports=None
 
         print(self.url)
@@ -97,13 +99,53 @@ class TargetSearch:
         return False
 
 
+    """
+    爬取文章详情页面的数据
+    """
     def get_report_info(self, list_urls):
         for index,url in enumerate(list_urls):
             self.reports[index].id = url.split('/')[-2]
-            self.driver.get(config.combine_link(url))
+            self.driver.get(url)
             WebDriverWait(self.driver, 15).until(
                 EC.url_to_be(url)
             )
+
+            first_ph_element = WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located((By.XPATH,'//*[@id="app"]/div[3]/div[2]/div[1]/div[2]/div/div[4]/pre[3]')))
+
+            title_element = WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located((By.XPATH,'//*[@id="app"]/div[2]/div[2]/div[1]/div[2]/div/h1'))
+            )
+
+            companies_element = WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, '//*[@id ="app"]/div[3]/div[2]/div[1]/div[2]/div/div[4]/div[2]/div/ul/li[contains(., \'Companies Covered\')]/following-sibling::li[1]'))
+            )
+            type_element = WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located(
+                    (By.XPATH,'//*[@id="app"]/div[3]/div[2]/div[1]/div[2]/div/div[4]/div[2]/div/ul/li[contains(., \'by Type\')]/following-sibling::li[1]')
+                )
+            )
+            application_element=WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located(
+                    (By.XPATH,'//*[@id="app"]/div[3]/div[2]/div[1]/div[2]/div/div[4]/div[2]/div/ul/li[contains(., \'by Application\')]/following-sibling::li[1]')
+                )
+            )
+
+            million_digit,cagr_digit,summary= self.parser.parser_first_ph(first_ph_element.text)
+            title = self.parser.parser_title(title_element.text)
+            companies_text = companies_element.text.strip()
+            type_text = type_element.text.strip()
+
+
+            self.reports[index].million_digit=million_digit
+            self.reports[index].cagr_digit=cagr_digit
+            self.reports[index].title=title
+            self.reports[index].summary_text=summary
+            self.reports[index].companies_text=companies_text
+            self.reports[index].type_text=type_text
+
+
 
 
     def record_data(self):
