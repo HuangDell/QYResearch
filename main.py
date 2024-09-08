@@ -16,13 +16,12 @@ def init():
 def start(driver):
     crawler = TargetSearch(driver)
     crawler.start()
-    time.sleep(5)
-    pass
 
 
 if __name__ == '__main__':
+    print('正在初始化环境，请稍等...')
     driver = init()
     start(driver)
-    pass
+    driver.quit()
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

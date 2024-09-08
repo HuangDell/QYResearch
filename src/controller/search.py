@@ -1,3 +1,5 @@
+import time
+
 from src.util.config import  config
 from . import report_writer,record_manager
 from selenium.webdriver.common.by import By
@@ -5,6 +7,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from src.controller.page_controller import PageController
 from src.controller.content_parser import ContentParser
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 from src.util.report_item import ReportItem
 
@@ -16,29 +19,69 @@ class TargetSearch:
         self.controller = PageController(self.driver)
         self.record = record_manager.load()
         self.parser = ContentParser()
-        self.reports=None
+        self.reports=[]
+        self.original_index=self.record.index
 
-        print(self.url)
         pass
 
     def start(self):
+        self.controller.fullscreen()
         self.driver.get(self.url)
+        print(f'开始从 Page {self.record.page}, Index {self.record.index} 开始爬取数据...')
+        try :
+            # 先恢复上次中断点
+            while not self.choose_page():pass
+            i=0
+            while True:
+                list_urls=self.get_one_page_list()
+                self.get_report_info(list_urls)
 
-        while not self.choose_page():
-            pass
-
-        while True:
-            list_urls=self.get_one_page_list()
-            self.get_report_info(list_urls)
-            self.record_data()
-            if not self.goto_next_page():
-                print("所有数据抓取完毕，爬虫结束...")
-                break
-            print(f'Page {self.record.page} 爬取完毕，现在爬取 Page {self.record.page+1}')
+                if not self.goto_next_page():
+                    print("所有数据抓取完毕，爬虫结束...")
+                    break
+                else:
+                    print(f'Page {self.record.page} 爬取完毕，现在爬取 Page {self.record.page+1}')
+                    self.write_report_data()
+                    self.record_page()
+                if i==2:
+                    break
+                i+=1
+        except KeyboardInterrupt:
+            print('程序正常退出，记录此次爬取的位置...')
+            self.write_report_data()
             self.record_page()
-            break
-        pass
+            time.sleep(2)
 
+    def choose_page(self):
+        self.controller.scroll_to_bottom()
+        # 定位到页码视图
+        pages_view = WebDriverWait(self.driver, 15).until(
+            EC.presence_of_element_located(
+                (By.XPATH, '//*[@id="app"]/div[3]/div[4]/div/div/div[2]/div[2]/div/ul'))
+        )
+        pages_list = pages_view.find_elements(By.TAG_NAME, 'li')
+        # 三种情况的页码处理
+        search_range = range(5)
+        jump_page = pages_list[4]
+        if pages_list[1].get_attribute('class') == 'el-icon more btn-quickprev el-icon-more' \
+                and pages_list[5].get_attribute('class') == 'el-icon more btn-quicknext el-icon-more':
+            search_range = range(2, 5)
+            jump_page = pages_list[5]
+        elif pages_list[1].get_attribute('class') == 'el-icon more btn-quickprev el-icon-more':
+            search_range = range(2, 6)
+
+        for index in search_range:
+            # 找到目标页面就点击并且返回函数
+            if str(self.record.page) == pages_list[index].text and pages_list[index].get_attribute('class')=='number':
+                pages_list[index].click()
+                self.wait_for_internal_loading()
+                return True
+            elif str(self.record.page) == pages_list[index].text :
+                return True
+
+        jump_page.click()
+        self.wait_for_internal_loading()
+        return False
 
     '''
         用于获取qyr一页的搜索结果，存储在list中
@@ -50,7 +93,7 @@ class TargetSearch:
         )
         list_items = ele.find_elements(By.TAG_NAME,'li')
         list_urls = []
-        self.reports=[]
+        self.reports.clear()
 
         for index in range(self.record.index,len(list_items)):
             item = list_items[index]
@@ -68,35 +111,12 @@ class TargetSearch:
                 report.pages=pages
                 report.price=price
 
-                self.reports.append(report)
                 list_urls.append(item.find_element(By.CLASS_NAME,'h3_p1').find_element(By.CLASS_NAME,'h3_p1').get_attribute('href'))
+                report.link=list_urls[-1]
+                self.reports.append(report)
         return list_urls
 
 
-    def choose_page(self):
-        self.controller.scroll_to_bottom()
-        # 定位到页码视图
-        pages_view = WebDriverWait(self.driver, 15).until(
-            EC.presence_of_element_located((By.XPATH,'//*[@id="app"]/div[3]/div[4]/div/div/div[2]/div[2]/div/ul'))
-        )
-        pages_list = pages_view.find_elements(By.TAG_NAME,'li')
-        # 三种情况的页码处理
-        search_range=range(5)
-        jump_page=pages_list[4]
-        if pages_list[1].get_attribute('class')=='el-icon more btn-quickprev el-icon-more'\
-                and pages_list[5].get_attribute('class')=='el-icon more btn-quicknext el-icon-more':
-            search_range=range(2,5)
-            jump_page=pages_list[5]
-        elif pages_list[1].get_attribute('class')=='el-icon more btn-quickprev el-icon-more':
-            search_range=range(2,6)
-
-        for index in search_range:
-            # 找到目标页面就点击并且返回函数
-            if str(self.record.page)==pages_list[index].text:
-                pages_list[index].click()
-                return True
-        jump_page.click()
-        return False
 
 
     """
@@ -105,51 +125,44 @@ class TargetSearch:
     def get_report_info(self, list_urls):
         for index,url in enumerate(list_urls):
             self.reports[index].id = url.split('/')[-2]
-            self.driver.get(url)
+            original_window=self.controller.open_url_in_new_tab(url)
             WebDriverWait(self.driver, 15).until(
                 EC.url_to_be(url)
             )
+            xpaths = {
+                'first_ph': '//*[@id="app"]/div[2]/div[2]/div[1]/div[2]/div/div[4]/div[2]/pre[1]',
+                'title': '//*[@id="app"]/div[2]/div[2]/div[1]/div[2]/div/h1',
+                'table':'//*[@id="app"]/div[3]/div[2]/div[1]/div[2]/div/div[4]/div[2]/div/ul',
+            }
 
-            first_ph_element = WebDriverWait(self.driver, 15).until(
-                EC.presence_of_element_located((By.XPATH,'//*[@id="app"]/div[3]/div[2]/div[1]/div[2]/div/div[4]/pre[3]')))
 
-            title_element = WebDriverWait(self.driver, 15).until(
-                EC.presence_of_element_located((By.XPATH,'//*[@id="app"]/div[2]/div[2]/div[1]/div[2]/div/h1'))
-            )
+            results = {}
+            for key, xpath in xpaths.items():
+                results[key] = self.get_element_text(xpath)
 
-            companies_element = WebDriverWait(self.driver, 15).until(
-                EC.presence_of_element_located(
-                    (By.XPATH, '//*[@id ="app"]/div[3]/div[2]/div[1]/div[2]/div/div[4]/div[2]/div/ul/li[contains(., \'Companies Covered\')]/following-sibling::li[1]'))
-            )
-            type_element = WebDriverWait(self.driver, 15).until(
-                EC.presence_of_element_located(
-                    (By.XPATH,'//*[@id="app"]/div[3]/div[2]/div[1]/div[2]/div/div[4]/div[2]/div/ul/li[contains(., \'by Type\')]/following-sibling::li[1]')
-                )
-            )
-            application_element=WebDriverWait(self.driver, 15).until(
-                EC.presence_of_element_located(
-                    (By.XPATH,'//*[@id="app"]/div[3]/div[2]/div[1]/div[2]/div/div[4]/div[2]/div/ul/li[contains(., \'by Application\')]/following-sibling::li[1]')
-                )
-            )
-
-            million_digit,cagr_digit,summary= self.parser.parser_first_ph(first_ph_element.text)
-            title = self.parser.parser_title(title_element.text)
-            companies_text = companies_element.text.strip()
-            type_text = type_element.text.strip()
+            million_digit,cagr_digit,summary= self.parser.parser_first_ph(results['first_ph'])
+            title = self.parser.parser_title(results['title'])
+            company_text,type_text,application_text= self.parser.parser_table(results['table'])
 
 
             self.reports[index].million_digit=million_digit
             self.reports[index].cagr_digit=cagr_digit
             self.reports[index].title=title
             self.reports[index].summary_text=summary
-            self.reports[index].companies_text=companies_text
+            self.reports[index].company_text=company_text
             self.reports[index].type_text=type_text
+            self.reports[index].application_text=application_text
+
+            print(f'Index {self.record.index} Title {title} 爬取完毕')
+            self.record.index+=1
+            time.sleep(config.sleep_time())
+            self.controller.close_current_tab_and_switch_back(original_window)
 
 
 
 
-    def record_data(self):
-        report_writer.write_items(self.reports)
+    def write_report_data(self):
+        report_writer.write_items(self.reports[:self.record.index-self.original_index])
         report_writer.save()
 
 
@@ -162,12 +175,44 @@ class TargetSearch:
             return False
 
         next_button.click()
+        self.wait_for_internal_loading()
         return True
 
     def record_page(self):
-        self.record.page+=1
-        self.record.index=0
+        if self.record.index==10:
+            self.record.page+=1
+            self.record.index=0
+            self.original_index=0
+
         record_manager.save(self.record)
+
+    def get_element_text(self,xpath, wait_time=1):
+        count =1
+        if 'ul' in xpath:
+            count = 15
+
+        element=''
+        for i in range(count):
+            try:
+                element = WebDriverWait(self.driver, wait_time).until(
+                    EC.presence_of_element_located((By.XPATH, xpath))
+                ).text.strip()
+            except TimeoutException:
+                # print(f"第 {i + 1} 次滚动后未找到表格，继续滚动")
+                self.controller.scroll_by_pixel(400)
+        return element
+
+    def wait_for_internal_loading(self):
+        loader_locator = (By.CSS_SELECTOR, "div.loading")
+        # 首先等待加载指示器出现
+        WebDriverWait(self.driver, 10).until(
+            EC.presence_of_element_located(loader_locator)
+        )
+        # 然后等待加载指示器消失
+        WebDriverWait(self.driver, 30).until_not(
+            EC.presence_of_element_located(loader_locator)
+        )
+        print("加载指示器已消失，页面加载完成")
 
 
 

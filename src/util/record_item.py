@@ -25,10 +25,6 @@ class RecordItem:
 
     @index.setter
     def index(self, value):
-        if not isinstance(value, int):
-            raise ValueError("Index must be an integer")
-        if value < 0 or value > 9:
-            raise ValueError("Index must be between 0 and 9 (inclusive)")
         self._index = value
 
     def __str__(self):

@@ -9,7 +9,7 @@ class ReportItem(object):
         self._category = None
         self._link = None
         self._title = None
-        self._year = None
+        self._year = 2024
         self._price = None
         self._pages = None
         self._million_digit = None

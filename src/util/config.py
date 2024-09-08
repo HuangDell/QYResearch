@@ -4,9 +4,10 @@ from urllib.parse import quote
 class Config:
     def __init__(self):
         self.config = configparser.ConfigParser()
-        self.config.read('../../config.ini',encoding='utf-8')
+        self.config.read('config.ini',encoding='utf-8')
         self.domain = self.config['Crawler']['SearchUrl']
         self.price = self.config['Crawler']['Price']
+        self.time=float(self.config['Crawler']['SleepTime'])
 
 
     def get_search_page(self):
@@ -25,5 +26,8 @@ class Config:
 
     def get_record_file(self):
         return self.config['Data']['RecordName']
+
+    def sleep_time(self):
+        return self.time
 
 config = Config()
