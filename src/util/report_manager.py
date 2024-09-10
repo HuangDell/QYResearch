@@ -2,12 +2,13 @@ import pandas as pd
 import os
 from typing import List
 from src.util.report_item import ReportItem
-from src.util.config import config
 
 class ReportExcelWriter:
     def __init__(self, filename: str):
         self.filename = filename
         self.df = None
+        self.is_file_in_use()
+
 
     def write_items(self, items: List[ReportItem]):
         # 将 ReportItem 对象转换为字典列表
@@ -70,13 +71,16 @@ class ReportExcelWriter:
                                  header=False,
                                  startrow=writer.sheets['Report Items'].max_row)
 
+    def is_file_in_use(self):
+        try:
+            with open(self.filename,'r+'):
+                pass
+        except FileNotFoundError:
+            pass
+        except Exception as e:
+            print(f'{self.filename}正在被使用，请关闭后再重新运行本程序！')
+            exit(-1)
 
-class RecordLocation:
-    def __init__(self):
-        self.filename = config.get_record_file()
-
-
-        pass
 
 
 
