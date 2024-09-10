@@ -8,6 +8,8 @@ class Config:
         self.domain = self.config['Crawler']['SearchUrl']
         self.price = self.config['Crawler']['Price']
         self.time=float(self.config['Crawler']['SleepTime'])
+        self.page_size=self.config['Crawler']['PageSize']
+        self.thread_num=self.config['Crawler']['ThreadNum']
 
 
     def get_search_page(self):

@@ -37,6 +37,7 @@ class SearchPage:
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-origin",
         }
+        self.page_size=config.page_size
 
 
 
@@ -49,7 +50,7 @@ class SearchPage:
             "keyWord": self.target,
             "orderBy": "time",
             "page": page,
-            "pageSize": 10
+            "pageSize": self.page_size
         }
         # 构建完整的URL
         full_url = f"{self.base_url}?{urlencode(params)}"
