@@ -27,6 +27,9 @@ class Config:
     def get_record_file(self):
         return self.config['Data']['RecordName']
 
+    def get_target(self):
+        return self.config['Crawler']['Target']
+
     def sleep_time(self):
         return self.time
 

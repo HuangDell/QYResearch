@@ -23,5 +23,6 @@ if __name__ == '__main__':
     driver = init()
     start(driver)
     driver.quit()
+    input("按q键退出...")
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

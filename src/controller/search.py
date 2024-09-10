@@ -10,6 +10,7 @@ from src.controller.content_parser import ContentParser
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 from src.util.report_item import ReportItem
+from .search_page import SearchPage
 
 
 class TargetSearch:
@@ -21,6 +22,8 @@ class TargetSearch:
         self.parser = ContentParser()
         self.reports=[]
         self.original_index=self.record.index
+        self.searcher=SearchPage(self.record)
+        self.page_max=None
 
         pass
 
@@ -30,100 +33,60 @@ class TargetSearch:
         print(f'开始从 Page {self.record.page}, Index {self.record.index} 开始爬取数据...')
         try :
             # 先恢复上次中断点
-            while not self.choose_page():pass
-            i=0
             while True:
-                list_urls=self.get_one_page_list()
-                self.get_report_info(list_urls)
+                self.get_products_url_list()
 
-                if not self.goto_next_page():
-                    print("所有数据抓取完毕，爬虫结束...")
+                self.get_report_info()
+
+                print(f'Page {self.record.page} 爬取完毕，现在爬取 Page {self.record.page+1}')
+                self.write_report_data()
+                self.record_page(True)
+                if self.record.page>self.page_max:
+                    print('所有数据爬取完毕，爬虫结束...')
                     break
-                else:
-                    print(f'Page {self.record.page} 爬取完毕，现在爬取 Page {self.record.page+1}')
-                    self.write_report_data()
-                    self.record_page()
-                if i==2:
-                    break
-                i+=1
         except KeyboardInterrupt:
             print('程序正常退出，记录此次爬取的位置...')
-            self.write_report_data()
-            self.record_page()
-            time.sleep(2)
+        except TimeoutException:
+            print(f'爬取超时，请检查网络是否正常...')
+        except Exception as e:
+            print(f'遇到未知异常，请联系管理员\n{e}')
+        self.write_report_data()
+        self.record_page(False)
+        print('数据记录完毕')
 
-    def choose_page(self):
-        self.controller.scroll_to_bottom()
-        # 定位到页码视图
-        pages_view = WebDriverWait(self.driver, 15).until(
-            EC.presence_of_element_located(
-                (By.XPATH, '//*[@id="app"]/div[3]/div[4]/div/div/div[2]/div[2]/div/ul'))
-        )
-        pages_list = pages_view.find_elements(By.TAG_NAME, 'li')
-        # 三种情况的页码处理
-        search_range = range(5)
-        jump_page = pages_list[4]
-        if pages_list[1].get_attribute('class') == 'el-icon more btn-quickprev el-icon-more' \
-                and pages_list[5].get_attribute('class') == 'el-icon more btn-quicknext el-icon-more':
-            search_range = range(2, 5)
-            jump_page = pages_list[5]
-        elif pages_list[1].get_attribute('class') == 'el-icon more btn-quickprev el-icon-more':
-            search_range = range(2, 6)
+    """利用request模块获取reports列表的url和基本信息"""
+    def get_products_url_list(self):
+        products,url_list,data_page=self.searcher.get_pages_url(self.record.page)
+        if self.page_max is None:
+            self.page_max = data_page
 
-        for index in search_range:
-            # 找到目标页面就点击并且返回函数
-            if str(self.record.page) == pages_list[index].text and pages_list[index].get_attribute('class')=='number':
-                pages_list[index].click()
-                self.wait_for_internal_loading()
-                return True
-            elif str(self.record.page) == pages_list[index].text :
-                return True
-
-        jump_page.click()
-        self.wait_for_internal_loading()
-        return False
-
-    '''
-        用于获取qyr一页的搜索结果，存储在list中
-    '''
-    def get_one_page_list(self):
-        self.controller.scroll_to_top()
-        ele = WebDriverWait(self.driver, 15).until(
-            EC.presence_of_element_located((By.XPATH, '//*[@id="app"]/div[2]/div[4]/div/div/div[2]/ul[1]'))
-        )
-        list_items = ele.find_elements(By.TAG_NAME,'li')
-        list_urls = []
         self.reports.clear()
 
-        for index in range(self.record.index,len(list_items)):
-            item = list_items[index]
-            price = item.find_element(By.XPATH,'./div[2]/div[1]/div/span').text
+        for index in range(self.record.index,len(products)):
+            item = products[index]
+            price = item['price']
             if config.check_price(price):
                 report=ReportItem()
 
                 # 从list中读取部分数据
-                date = item.find_element(By.XPATH,'./div[2]/div[2]/div[1]/div[1]/p').text.split(' ')[-1]
-                category= item.find_element(By.XPATH,'./div[2]/div[2]/div[1]/div[3]/p/span').text
-                pages =item.find_element(By.XPATH,'./div[2]/div[2]/div[1]/div[2]/p').text.split(' ')[-1]
+                date= item['published_date_format']
+                category=item['category_name']
+                pages=item['pages']
 
                 report.date=date
                 report.category=category
                 report.pages=pages
                 report.price=price
+                report.link = url_list[index]
 
-                list_urls.append(item.find_element(By.CLASS_NAME,'h3_p1').find_element(By.CLASS_NAME,'h3_p1').get_attribute('href'))
-                report.link=list_urls[-1]
                 self.reports.append(report)
-        return list_urls
-
-
-
-
+        # return url_list[self.original_index:]
     """
     爬取文章详情页面的数据
     """
-    def get_report_info(self, list_urls):
-        for index,url in enumerate(list_urls):
+    def get_report_info(self):
+        for index,report in enumerate(self.reports):
+            url=report.link
             self.reports[index].id = url.split('/')[-2]
             original_window=self.controller.open_url_in_new_tab(url)
             WebDriverWait(self.driver, 15).until(
@@ -166,6 +129,7 @@ class TargetSearch:
         report_writer.save()
 
 
+    """v2版本中弃用，改用request进行爬取页面"""
     def goto_next_page(self):
         self.controller.scroll_to_bottom()
         next_button = WebDriverWait(self.driver, 15).until(
@@ -178,8 +142,8 @@ class TargetSearch:
         self.wait_for_internal_loading()
         return True
 
-    def record_page(self):
-        if self.record.index==10:
+    def record_page(self,flag):
+        if self.record.index==10 or flag:
             self.record.page+=1
             self.record.index=0
             self.original_index=0
@@ -202,6 +166,7 @@ class TargetSearch:
                 self.controller.scroll_by_pixel(400)
         return element
 
+    """v2版本中弃用"""
     def wait_for_internal_loading(self):
         loader_locator = (By.CSS_SELECTOR, "div.loading")
         # 首先等待加载指示器出现
