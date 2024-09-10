@@ -144,6 +144,7 @@ class TargetSearch:
                     self.record.index += 1
                 except Exception as exc:
                     print(f'Report at index {index} generated an exception: {exc}')
+        self.close_all_drivers()
 
         print("All reports processed.")
 
