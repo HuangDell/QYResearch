@@ -6,6 +6,9 @@ from selenium.webdriver.edge.options import Options
 
 def init():
     options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--disable-gpu")  # 在Windows上需要
+    options.add_argument("--no-sandbox")  # 在某些环境中需要
     custom_user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0'
     options.add_argument(f'user-agent={custom_user_agent}')
 

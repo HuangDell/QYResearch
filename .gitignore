@@ -1,5 +1,9 @@
 msedgedriver.exe
 
+/*.spec
 .idea/
 /QYResearch_Market_Report_2024.xlsx
+/dist/
+/build/
 /QYResearch_Record_Location.json
+/test.py

@@ -40,13 +40,13 @@ class ContentParser:
                 for i in range(index+1, len(contents)):
                     if 'by Application' in contents[i]:
                         break
-                    type_text+=contents[i]+'\n'
+                    type_text+=contents[i]+'\r\n'
             elif 'by Application' in content:
                 for i in range(index+1, len(contents)):
                     if contents[i]=='Forecast Units':
                         break
-                    application_text+=contents[i]+'\n'
-        company_text.replace(', ','\n')
+                    application_text+=contents[i]+'\r\n'
+        company_text=company_text.replace(', ','\r\n')
         return company_text,type_text,application_text
 
 
