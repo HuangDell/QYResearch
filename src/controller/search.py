@@ -96,23 +96,8 @@ class TargetSearch:
     爬取文章详情页面的数据
     """
     def process_single_report(self, report, index):
-        # driver=self.get_driver()
         url = report.link
         report.id = url.split('/')[-2]
-        # self.controller.fullscreen(driver)
-        # driver.get(url)
-        # WebDriverWait(driver, 15).until(
-        #     EC.url_to_be(url)
-        # )
-        # xpaths = {
-        #     'first_ph': '//*[@id="app"]/div[2]/div[2]/div[1]/div[2]/div/div[4]/div[2]/pre[1]',
-        #     'title': '//*[@id="app"]/div[2]/div[2]/div[1]/div[2]/div/h1',
-        #     'table': '//*[@id="app"]/div[3]/div[2]/div[1]/div[2]/div/div[4]/div[2]/div/ul',
-        # }
-
-        # results = {}
-        # for key, xpath in xpaths.items():
-        #     results[key] = self.get_element_text(driver,xpath)
         data = self.searcher.get_report_info(report)
 
         first_ph=data['description'][0]
@@ -124,7 +109,6 @@ class TargetSearch:
 
         million_digit, cagr_digit, summary =        self.parser.parser_first_ph(first_ph)
         title =                                     self.parser.parser_title(title)
-        # company_text, type_text, application_text = self.parser.parser_table(results['table'])
 
         report.million_digit = million_digit
         report.cagr_digit = cagr_digit

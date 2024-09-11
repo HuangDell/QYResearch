@@ -22,11 +22,14 @@ class ContentParser:
         summary_match = re.search(self.summary_pattern, content)
         summary = summary_match.group(1) if summary_match else ""
 
-        return us_dollar_value, cagr_value, summary
+        return us_dollar_value, cagr_value,self.clean_string(summary)
 
     def parser_title(self,content):
         title = re.search(self.title_pattern, content).group(1)
         return title
+
+    def clean_string(self,s):
+        return re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]', '', str(s))
 
     def parser_table(self,table):
         contents = table.split('\n')
