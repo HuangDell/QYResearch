@@ -3,8 +3,6 @@ import time
 import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor
 
-from selenium import webdriver
-from selenium.webdriver.edge.options import Options
 
 from src.util.config import  config
 from . import report_writer,record_manager
@@ -81,12 +79,14 @@ class TargetSearch:
                 date= item['published_date_format']
                 category=item['category_name']
                 pages=item['pages']
+                url=item['url']
 
                 report.date=date
                 report.category=category
                 report.pages=pages
                 report.price=price
                 report.link = url_list[index]
+                report.url = url
 
                 self.reports.append(report)
         # return url_list[self.original_index:]
@@ -96,27 +96,35 @@ class TargetSearch:
     爬取文章详情页面的数据
     """
     def process_single_report(self, report, index):
-        driver=self.get_driver()
+        # driver=self.get_driver()
         url = report.link
         report.id = url.split('/')[-2]
-        self.controller.fullscreen(driver)
-        driver.get(url)
-        WebDriverWait(driver, 15).until(
-            EC.url_to_be(url)
-        )
-        xpaths = {
-            'first_ph': '//*[@id="app"]/div[2]/div[2]/div[1]/div[2]/div/div[4]/div[2]/pre[1]',
-            'title': '//*[@id="app"]/div[2]/div[2]/div[1]/div[2]/div/h1',
-            'table': '//*[@id="app"]/div[3]/div[2]/div[1]/div[2]/div/div[4]/div[2]/div/ul',
-        }
+        # self.controller.fullscreen(driver)
+        # driver.get(url)
+        # WebDriverWait(driver, 15).until(
+        #     EC.url_to_be(url)
+        # )
+        # xpaths = {
+        #     'first_ph': '//*[@id="app"]/div[2]/div[2]/div[1]/div[2]/div/div[4]/div[2]/pre[1]',
+        #     'title': '//*[@id="app"]/div[2]/div[2]/div[1]/div[2]/div/h1',
+        #     'table': '//*[@id="app"]/div[3]/div[2]/div[1]/div[2]/div/div[4]/div[2]/div/ul',
+        # }
 
-        results = {}
-        for key, xpath in xpaths.items():
-            results[key] = self.get_element_text(driver,xpath)
+        # results = {}
+        # for key, xpath in xpaths.items():
+        #     results[key] = self.get_element_text(driver,xpath)
+        data = self.searcher.get_report_info(report)
 
-        million_digit, cagr_digit, summary =        self.parser.parser_first_ph(results['first_ph'])
-        title =                                     self.parser.parser_title(results['title'])
-        company_text, type_text, application_text = self.parser.parser_table(results['table'])
+        first_ph=data['description'][0]
+        title =data['name']
+        company_text='\n'.join(data['companies_mentioned'].split(', '))
+        type_text = '\n'.join(data['classification'])
+        application_text = '\n'.join(data['application'])
+
+
+        million_digit, cagr_digit, summary =        self.parser.parser_first_ph(first_ph)
+        title =                                     self.parser.parser_title(title)
+        # company_text, type_text, application_text = self.parser.parser_table(results['table'])
 
         report.million_digit = million_digit
         report.cagr_digit = cagr_digit
@@ -144,7 +152,7 @@ class TargetSearch:
                     self.record.index += 1
                 except Exception as exc:
                     print(f'Report at index {index} generated an exception: {exc}')
-        self.close_all_drivers()
+        # self.close_all_drivers()
 
         print("All reports processed.")
 
@@ -193,43 +201,30 @@ class TargetSearch:
                 self.controller.scroll_by_pixel(driver,400)
         return element
 
-    def get_driver(self):
-        thread_id = threading.get_ident()
-        if thread_id not in self.drivers:
-            self.drivers[thread_id] = create_driver()
-            print(f'{thread_id} 线程创建成功')
-        return self.drivers[thread_id]
+    # def get_driver(self):
+    #     thread_id = threading.get_ident()
+    #     if thread_id not in self.drivers:
+    #         self.drivers[thread_id] = create_driver()
+    #         print(f'{thread_id} 线程创建成功')
+    #     return self.drivers[thread_id]
 
-    def close_all_drivers(self):
-        for driver in self.drivers.values():
-            driver.quit()
-        self.drivers.clear()
-
-    # """v2版本中弃用"""
-    # def wait_for_internal_loading(self):
-    #     loader_locator = (By.CSS_SELECTOR, "div.loading")
-    #     # 首先等待加载指示器出现
-    #     WebDriverWait(self.driver, 10).until(
-    #         EC.presence_of_element_located(loader_locator)
-    #     )
-    #     # 然后等待加载指示器消失
-    #     WebDriverWait(self.driver, 30).until_not(
-    #         EC.presence_of_element_located(loader_locator)
-    #     )
-    #     print("加载指示器已消失，页面加载完成")
+    # def close_all_drivers(self):
+    #     for driver in self.drivers.values():
+    #         driver.quit()
+    #     self.drivers.clear()
 
 
 
-def create_driver():
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")  # 在Windows上需要
-    options.add_argument("--no-sandbox")  # 在某些环境中需要
-    custom_user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0'
-    options.add_argument(f'user-agent={custom_user_agent}')
-
-    driver = webdriver.Edge(options=options)
-    return driver
+# def create_driver():
+#     options = Options()
+#     options.add_argument("--headless")
+#     options.add_argument("--disable-gpu")  # 在Windows上需要
+#     options.add_argument("--no-sandbox")  # 在某些环境中需要
+#     custom_user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0'
+#     options.add_argument(f'user-agent={custom_user_agent}')
+#
+#     driver = webdriver.Edge(options=options)
+#     return driver
 
 
 

@@ -2,9 +2,9 @@ import random
 from urllib.parse import urlencode
 
 import requests
-
 from src.util.config import config
 from src.util.record_item import RecordItem
+from src.util.report_item import ReportItem
 
 
 class SearchPage:
@@ -23,6 +23,7 @@ class SearchPage:
 
         self.base_url = "https://www.qyresearch.com/api/product/list"
         self.base_report_url = 'https://www.qyresearch.com/reports/'
+        self.base_info_url = 'https://www.qyresearch.com/api/product/view'
 
         # 自定义headers
         self.headers = {
@@ -67,6 +68,22 @@ class SearchPage:
         for item in data['product']:
             reports_url.append(f'{self.base_report_url}{item["id"]}/{item["url"]}')
         return data['product'],reports_url,int(data['pageCount'])
+
+    def get_report_info(self,report:ReportItem):
+        params={
+            "product_id": report.id,
+            "url": report.url
+        }
+        response=requests.get(self.base_info_url,params=params,headers=self.headers,timeout=10)
+        # 检查响应状态
+        response.raise_for_status()  # 如果状态码不是200，将引发HTTPError异常
+        data=response.json()['data']
+        return data
+
+
+
+
+
 
 
 

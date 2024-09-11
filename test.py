@@ -4,6 +4,8 @@ from urllib.parse import urlencode
 import random
 import time
 
+from urllib3 import request
+
 # 用户代理列表
 user_agents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -18,6 +20,7 @@ def get_random_user_agent():
 # 基础URL
 base_url = "https://www.qyresearch.com/api/product/list"
 base_report_url = 'https://www.qyresearch.com/reports/'
+report_info_url="https://www.qyresearch.com/api/product/view"
 
 # 请求参数
 params = {
@@ -60,7 +63,15 @@ try:
     print("请求成功!")
     for item in data['product']:
         reports_url.append(f'{base_report_url}{item["id"]}/{item["url"]}')
+        params_info = {
+            "product_id": item['id'],
+            "url": item['url']
+        }
+        report_info=requests.get(report_info_url,params=params_info,headers=headers,timeout=10)
+        pass
     print(f"响应数据: {reports_url}")
+
+    pass
 
 except requests.exceptions.HTTPError as errh:
     print(f"HTTP错误: {errh}")

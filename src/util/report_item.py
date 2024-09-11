@@ -18,6 +18,15 @@ class ReportItem(object):
         self._company_text = None
         self._type_text = None
         self._application_text = None
+        self._url=None
+
+    @property
+    def url(self):
+        return self._url
+
+    @url.setter
+    def url(self, value):
+        self._url = value
 
     @property
     def id(self):
