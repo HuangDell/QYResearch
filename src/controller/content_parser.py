@@ -3,7 +3,7 @@ import re
 class ContentParser:
     def __init__(self):
         self.us_dollar_pattern=r'US\$\s*([\d,]+\.?\d*)'
-        self.cagr_value_pattern=r'CAGR of (\d+\.?\d*)%'
+        self.cagr_value_pattern=r'CAGR of ([-+]?\d*\.?\d+)%'
         self.title_pattern = r'Global (.*?) Market'
         self.summary_pattern = r'^(.*?)\s*The global'
 

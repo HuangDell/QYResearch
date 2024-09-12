@@ -1,4 +1,5 @@
 import random
+import time
 from urllib.parse import urlencode
 
 import requests
@@ -74,10 +75,18 @@ class SearchPage:
             "product_id": report.id,
             "url": report.url
         }
-        response=requests.get(self.base_info_url,params=params,headers=self.headers,timeout=10)
-        # 检查响应状态
-        response.raise_for_status()  # 如果状态码不是200，将引发HTTPError异常
-        data=response.json()['data']
+        data=None
+        for i in range(1,11):
+            try:
+                response=requests.get(self.base_info_url,params=params,headers=self.headers,timeout=10)
+                # 检查响应状态
+                response.raise_for_status()  # 如果状态码不是200，将引发HTTPError异常
+                data=response.json()['data']
+                break
+            except Exception as e:
+                print(f'遇到异常{e}，正在重试...    重试次数{i}')
+                time.sleep(i*10)
+
         return data
 
 
