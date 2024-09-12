@@ -70,7 +70,7 @@ class SearchPage:
                 break
             except Exception as e:
                 print(f'遇到异常{e}，正在重试...    重试次数{i}')
-                time.sleep(1)
+                time.sleep(6*i)
 
         reports_url = []
         for item in data['product']:
@@ -92,7 +92,7 @@ class SearchPage:
                 break
             except Exception as e:
                 print(f'遇到异常{e}，正在重试...    重试次数{i}')
-                time.sleep(i*10)
+                time.sleep(i*6)
 
         return data
 
