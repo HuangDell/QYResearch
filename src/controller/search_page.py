@@ -57,15 +57,22 @@ class SearchPage:
         # 构建完整的URL
         full_url = f"{self.base_url}?{urlencode(params)}"
         # 发送GET请求
-        response = requests.get(full_url, headers=self.headers, timeout=10)
+        for i in range(1,11):
+            try:
+                response = requests.get(full_url, headers=self.headers, timeout=10)
 
-        # 检查响应状态
-        response.raise_for_status()  # 如果状态码不是200，将引发HTTPError异常
+                # 检查响应状态
+                response.raise_for_status()  # 如果状态码不是200，将引发HTTPError异常
 
-        # 请求成功
-        data = response.json()['data']  # 假设响应是JSON格式
+                # 请求成功
+                data = response.json()['data']  # 假设响应是JSON格式
+                print(f"获取 Page {page}信息成功!")
+                break
+            except Exception as e:
+                print(f'遇到异常{e}，正在重试...    重试次数{i}')
+                time.sleep(1)
+
         reports_url = []
-        print(f"获取 Page {page}信息成功!")
         for item in data['product']:
             reports_url.append(f'{self.base_report_url}{item["id"]}/{item["url"]}')
         return data['product'],reports_url,int(data['pageCount'])
